@@ -1,11 +1,15 @@
 package com.example.administrator.screensave2;
 
+import android.Manifest;
+import android.app.Activity;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Display;
@@ -21,7 +25,12 @@ import java.io.FileOutputStream;
 
 public class MainActivity extends AppCompatActivity {
     Context mContext;
-    @Override
+
+    private static final int REQUEST_EXTERNAL_STORAGE = 1;
+    private static String[] PERMISSIONS_STORAGE = {
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE
+    };
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -45,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         }
+        verifyStoragePermissions(this);
     }
 
     @Override
@@ -82,41 +92,43 @@ public class MainActivity extends AppCompatActivity {
         decorview.setDrawingCacheEnabled(true);
         Bmp = decorview.getDrawingCache();
 
-        String SavePath = getSDCardPath() + "/ScreenImage";
+        File SavePathFile = getSDCardPath();
 
         //3.保存Bitmap
         try {
-            File path = new File(SavePath);
-            //文件
-            String filepath = SavePath + "/Screen_1.png";
-            File file = new File(filepath);
-            if (!path.exists()) {
-                path.mkdirs();
-            }
-            if (!file.exists()) {
-                file.createNewFile();
-            }
-
             FileOutputStream fos = null;
-            fos = new FileOutputStream(file);
+            fos = new FileOutputStream(SavePathFile);
             if (null != fos) {
                 Bmp.compress(Bitmap.CompressFormat.PNG, 90, fos);
                 fos.flush();
                 fos.close();
-                Toast.makeText(getApplicationContext(), "截屏文件已保存至SDCard/AndyDemo/ScreenImage/下", Toast.LENGTH_LONG).show();
             }
 
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
-    private String getSDCardPath(){
+    private File getSDCardPath(){
         File sdcardDir = null;
-        //判断SDCard是否存在
-        //boolean sdcardExist = Environment.getExternalStorageState().equals(android.os.Environment.MEDIA_MOUNTED);
-       //getExternalStorageDirectory
-            //sdcardDir = Environment.getExternalStorageDirectory();getExternalFilesDir
-            sdcardDir= getApplicationContext().getFilesDir();
-        return sdcardDir.toString();
+
+        if (!Environment.getExternalStorageState().equalsIgnoreCase(Environment.MEDIA_MOUNTED)) {
+            return  null;
+        }
+        File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_PICTURES), "CameraSample.png");
+        return mediaStorageDir;
+    }
+    public static void verifyStoragePermissions(Activity activity) {
+        // Check if we have write permission
+        int permission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+
+        if (permission != PackageManager.PERMISSION_GRANTED) {
+            // We don't have permission so prompt the user
+            ActivityCompat.requestPermissions(
+                    activity,
+                    PERMISSIONS_STORAGE,
+                    REQUEST_EXTERNAL_STORAGE
+            );
+        }
     }
 }
